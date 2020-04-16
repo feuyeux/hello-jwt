@@ -1,4 +1,4 @@
-## Hello JWT
+## Hello JWT(JAVA)
 - fork from the article: https://www.javainuse.com/spring/boot-jwt
 - support webflux
 - upgrade springboot to 2.3.0 to support rsocket-security
@@ -33,7 +33,7 @@ The JwtTokenUtil is responsible for performing JWT operations like creation and 
 JWTUserDetailsService implements the Spring Security UserDetailsService interface. It overrides the loadUserByUsername for fetching user details from the database using the username. The Spring Security Authentication Manager calls this method for getting the user details from the database when authenticating the user details provided by the user. Here we are getting the user details from a hardcoded User List.
 
 src/main/java/org/feuyeux/jwt/service/JwtUserDetailsService.java
- 
+
 ##### JwtAuthenticationController
 Expose a POST API /authenticate using the JwtAuthenticationController. The POST API gets username and password in the body- Using Spring Authentication Manager we authenticate the username and password.If the credentials are valid, a JWT token is created using the JWTTokenUtil and provided to the client.
 
