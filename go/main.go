@@ -25,59 +25,8 @@ func main() {
 	//router.POST("/logout", Logout)
 	router.POST("/todo", TokenAuthMiddleware(), CreateTodo)
 	router.POST("/logout", TokenAuthMiddleware(), Logout)
-
 	router.POST("/token/refresh", Refresh)
-
 	log.Fatal(router.Run(":8080"))
-}
-
-type User struct {
-	ID       uint64 `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Phone    string `json:"phone"`
-}
-
-var user = User{
-	ID:       1,
-	Username: "username",
-	Password: "password",
-	Phone:    "49123454322", //this is a random number
-}
-
-func Login0(c *gin.Context) {
-	var u User
-	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
-		return
-	}
-	//compare the user from the request, with the one we defined:
-	if user.Username != u.Username || user.Password != u.Password {
-		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
-		return
-	}
-	token, err := CreateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, token)
-}
-
-func CreateToken0(userId uint64) (string, error) {
-	var err error
-	//Creating Access Token
-	os.Setenv("ACCESS_SECRET", "jdnfksdmfksd") //this should be in an env file
-	atClaims := jwt.MapClaims{}
-	atClaims["authorized"] = true
-	atClaims["user_id"] = userId
-	atClaims["exp"] = time.Now().Add(time.Minute * 15).Unix()
-	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	token, err := at.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
-	if err != nil {
-		return "", err
-	}
-	return token, nil
 }
 
 // docker run --name my-redis -p 6379:6379 --restart always --detach redis
@@ -97,6 +46,22 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func CreateToken0(userId uint64) (string, error) {
+	var err error
+	//Creating Access Token
+	os.Setenv("ACCESS_SECRET", "jdnfksdmfksd") //this should be in an env file
+	atClaims := jwt.MapClaims{}
+	atClaims["authorized"] = true
+	atClaims["user_id"] = userId
+	atClaims["exp"] = time.Now().Add(time.Minute * 15).Unix()
+	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+	token, err := at.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 func CreateToken(userid uint64) (*TokenDetails, error) {
@@ -134,15 +99,6 @@ func CreateToken(userid uint64) (*TokenDetails, error) {
 	return td, nil
 }
 
-type TokenDetails struct {
-	AccessToken  string
-	RefreshToken string
-	AccessUuid   string
-	RefreshUuid  string
-	AtExpires    int64
-	RtExpires    int64
-}
-
 func CreateAuth(userid uint64, td *TokenDetails) error {
 	at := time.Unix(td.AtExpires, 0) //converting Unix to UTC(to Time object)
 	rt := time.Unix(td.RtExpires, 0)
@@ -157,6 +113,25 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 		return errRefresh
 	}
 	return nil
+}
+
+func Login0(c *gin.Context) {
+	var u User
+	if err := c.ShouldBindJSON(&u); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
+		return
+	}
+	//compare the user from the request, with the one we defined:
+	if user.Username != u.Username || user.Password != u.Password {
+		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
+		return
+	}
+	token, err := CreateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, token)
 }
 
 func Login(c *gin.Context) {
@@ -186,11 +161,6 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokens)
 }
 
-type Todo struct {
-	UserID uint64 `json:"user_id"`
-	Title  string `json:"title"`
-}
-
 func ExtractToken(r *http.Request) string {
 	bearToken := r.Header.Get("Authorization")
 	//normally Authorization the_token_xxx
@@ -215,6 +185,7 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	}
 	return token, nil
 }
+
 func TokenValid(r *http.Request) error {
 	token, err := VerifyToken(r)
 	if err != nil {
@@ -248,12 +219,6 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 	}
 	return nil, err
 }
-
-type AccessDetails struct {
-	AccessUuid string
-	UserId     uint64
-}
-
 func FetchAuth(authD *AccessDetails) (uint64, error) {
 	userid, err := client.Get(authD.AccessUuid).Result()
 	if err != nil {
