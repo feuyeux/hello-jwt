@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/feuyeux/hello-jwt/go/stru"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
 	"github.com/twinj/uuid"
-	"stru"
 	"log"
 	"net/http"
 	"os"
@@ -28,12 +28,14 @@ func main() {
 	router.POST("/token/refresh", Refresh)
 	log.Fatal(router.Run(":8080"))
 }
+
 var user = stru.User{
 	ID:       1,
 	Username: "username",
 	Password: "password",
 	Phone:    "49123454322", //this is a random number
 }
+
 // docker run --name my-redis -p 6379:6379 --restart always --detach redis
 
 var client *redis.Client
@@ -127,11 +129,11 @@ func Login0(c *gin.Context) {
 		return
 	}
 	//compare the user from the request, with the one we defined:
-	if stru.user.Username != u.Username || stru.user.Password != u.Password {
+	if user.Username != u.Username || user.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
 		return
 	}
-	token, err := CreateToken(stru.user.ID)
+	token, err := CreateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -146,16 +148,16 @@ func Login(c *gin.Context) {
 		return
 	}
 	//compare the user from the request, with the one we defined:
-	if stru.user.Username != u.Username || stru.user.Password != u.Password {
+	if user.Username != u.Username || user.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
 		return
 	}
-	ts, err := CreateToken(stru.user.ID)
+	ts, err := CreateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	saveErr := CreateAuth(stru.user.ID, ts)
+	saveErr := CreateAuth(user.ID, ts)
 	if saveErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
 	}
