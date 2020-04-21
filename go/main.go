@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v7"
+	"github.com/twinj/uuid"
+	"stru"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v7"
-	"github.com/twinj/uuid"
 )
 
 var (
@@ -28,7 +28,12 @@ func main() {
 	router.POST("/token/refresh", Refresh)
 	log.Fatal(router.Run(":8080"))
 }
-
+var user = stru.User{
+	ID:       1,
+	Username: "username",
+	Password: "password",
+	Phone:    "49123454322", //this is a random number
+}
 // docker run --name my-redis -p 6379:6379 --restart always --detach redis
 
 var client *redis.Client
@@ -64,8 +69,8 @@ func CreateToken0(userId uint64) (string, error) {
 	return token, nil
 }
 
-func CreateToken(userid uint64) (*TokenDetails, error) {
-	td := &TokenDetails{}
+func CreateToken(userid uint64) (*stru.TokenDetails, error) {
+	td := &stru.TokenDetails{}
 	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
 	td.AccessUuid = uuid.NewV4().String()
 
@@ -99,7 +104,7 @@ func CreateToken(userid uint64) (*TokenDetails, error) {
 	return td, nil
 }
 
-func CreateAuth(userid uint64, td *TokenDetails) error {
+func CreateAuth(userid uint64, td *stru.TokenDetails) error {
 	at := time.Unix(td.AtExpires, 0) //converting Unix to UTC(to Time object)
 	rt := time.Unix(td.RtExpires, 0)
 	now := time.Now()
@@ -116,17 +121,17 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 }
 
 func Login0(c *gin.Context) {
-	var u User
+	var u stru.User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
 	//compare the user from the request, with the one we defined:
-	if user.Username != u.Username || user.Password != u.Password {
+	if stru.user.Username != u.Username || stru.user.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
 		return
 	}
-	token, err := CreateToken(user.ID)
+	token, err := CreateToken(stru.user.ID)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
 		return
@@ -135,22 +140,22 @@ func Login0(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	var u User
+	var u stru.User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
 	//compare the user from the request, with the one we defined:
-	if user.Username != u.Username || user.Password != u.Password {
+	if stru.user.Username != u.Username || stru.user.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
 		return
 	}
-	ts, err := CreateToken(user.ID)
+	ts, err := CreateToken(stru.user.ID)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	saveErr := CreateAuth(user.ID, ts)
+	saveErr := CreateAuth(stru.user.ID, ts)
 	if saveErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
 	}
@@ -197,7 +202,7 @@ func TokenValid(r *http.Request) error {
 	return nil
 }
 
-func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
+func ExtractTokenMetadata(r *http.Request) (*stru.AccessDetails, error) {
 	token, err := VerifyToken(r)
 	if err != nil {
 		return nil, err
@@ -212,14 +217,14 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &AccessDetails{
+		return &stru.AccessDetails{
 			AccessUuid: accessUuid,
 			UserId:     userId,
 		}, nil
 	}
 	return nil, err
 }
-func FetchAuth(authD *AccessDetails) (uint64, error) {
+func FetchAuth(authD *stru.AccessDetails) (uint64, error) {
 	userid, err := client.Get(authD.AccessUuid).Result()
 	if err != nil {
 		return 0, err
@@ -229,7 +234,7 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 }
 
 func CreateTodo(c *gin.Context) {
-	var td *Todo
+	var td *stru.Todo
 	if err := c.ShouldBindJSON(&td); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "invalid json")
 		return

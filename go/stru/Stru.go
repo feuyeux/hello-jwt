@@ -1,4 +1,4 @@
-package main
+package stru
 
 type User struct {
 	ID       uint64 `json:"id"`
@@ -26,9 +26,3 @@ type Todo struct {
 	Title  string `json:"title"`
 }
 
-var user = User{
-	ID:       1,
-	Username: "username",
-	Password: "password",
-	Phone:    "49123454322", //this is a random number
-}

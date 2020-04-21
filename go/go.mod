@@ -1,4 +1,4 @@
-module jwt-todo
+module github.com/feuyeux/hello-jwt/go
 
 go 1.13
 
