@@ -1,6 +1,8 @@
 ## Hello JWT(GO)
 - fork from the article: https://www.nexmo.com/blog/2020/03/13/using-jwt-for-authentication-in-a-golang-application-dr
 
+<img src="jwt-workflow.png" style="width:500px;" />
+
 ### RUN & TEST
 ```sh
 go run main.go
